@@ -18,9 +18,13 @@ export const productSections = (p) => {
   return [LEGACY_SECTIONS[p.section] || p.section]
 }
 
-// Producto aún sin terminar de cargar (sin foto real o sin nombre)
-export const isDraft = (p) =>
-  !p?.image || String(p.image).includes('placehold.co') || !p?.name || p.name === 'Nuevo Producto'
+// ¿Es una foto real? (no vacía ni la imagen de muestra)
+export const isRealPhoto = (u) => !!u && typeof u === 'string' && !u.includes('placehold.co')
+
+// Producto aún sin terminar: SIN NINGUNA foto real.
+// (Antes también se ocultaba si el nombre seguía siendo «Nuevo Producto»: la dueña veía
+// sus fotos en modo edición, pero sus clientes no veían nada.)
+export const isDraft = (p) => !isRealPhoto(p?.image) && !(p?.images || []).some(isRealPhoto)
 
 /* ── Opciones de producto (opcionales): tallas, colores y precio anterior ── */
 

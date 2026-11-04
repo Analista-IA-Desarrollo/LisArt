@@ -4,7 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { useTenant } from '@/features/tenant/TenantProvider'
 import * as productsApi from '@/services/products.service'
 import { uploadImage } from '@/lib/cloudinary'
-import { productSections } from '@/lib/catalog'
+import { productSections, isRealPhoto } from '@/lib/catalog'
 
 const Ctx = createContext(null)
 
@@ -46,6 +46,8 @@ export function ProductsProvider({ children }) {
       (list) => {
         // Orden estable: por fecha de creación
         const sorted = [...list].sort((a, b) => toMillis(a.createdAt) - toMillis(b.createdAt))
+          // Portada sin foto real pero con fotos en la galería: se muestra la primera de ellas
+          .map(p => (!isRealPhoto(p.image) && (p.images || []).some(isRealPhoto)) ? { ...p, image: p.images.find(isRealPhoto) } : p)
         setProducts(sorted); setLoading(false); setError(null)
       },
       (err) => { setError(err.message); setLoading(false) },
@@ -64,14 +66,20 @@ export function ProductsProvider({ children }) {
     updateField: (id, field, value) => patch(id, { [field]: value }),
     updateImage: async (id, file) => {
       const url = await uploadImage(file, imageFolder)
-      await patch(id, { image: url })
+      // Si el nombre sigue siendo el de muestra, se quita para que no aparezca así a los clientes
+      await patch(id, find(id)?.name === NEW_PRODUCT.name ? { image: url, name: '' } : { image: url })
       return url
     },
     addImages: async (id, files) => {
       const list = Array.from(files || []).filter(f => f.type?.startsWith('image/'))
       const urls = []
       for (const f of list) urls.push(await uploadImage(f, imageFolder))
-      if (urls.length) await patch(id, { images: [...(find(id)?.images || []), ...urls] })
+      if (urls.length) {
+        const p = find(id)
+        // Sin portada real todavía: la primera foto subida pasa a ser la portada
+        if (!isRealPhoto(p?.image)) await patch(id, { image: urls[0], images: [...(p?.images || []), ...urls.slice(1)] })
+        else await patch(id, { images: [...(p?.images || []), ...urls] })
+      }
       return urls
     },
     removeImage: (id, url) => patch(id, { images: (find(id)?.images || []).filter(u => u !== url) }),
@@ -79,7 +87,7 @@ export function ProductsProvider({ children }) {
       const p = find(id)
       if (!p) return
       const rest = (p.images || []).filter(u => u !== url)
-      return patch(id, { image: url, images: p.image ? [p.image, ...rest] : rest })
+      return patch(id, { image: url, images: isRealPhoto(p.image) ? [p.image, ...rest] : rest })
     },
     setSections: (id, sections) => patch(id, { sections, section: sections[0] || '' }),
     deleteProduct: (id) => productsApi.deleteProduct(tenantId, id),
