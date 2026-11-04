@@ -3,7 +3,7 @@ import { useAdmin } from '@/features/editor/EditorProvider'
 import { useUI } from '@/features/catalog/UIProvider'
 import { useSiteContent } from '@/features/tenant/useSiteContent'
 import { useTenant } from '@/features/tenant/TenantProvider'
-import { navigate } from '@/app/router'
+import { navigate, loginPath } from '@/app/router'
 import Icon from '@/shared/ui/Icon'
 import { useSettingsCtx } from '@/features/catalog/data/SettingsProvider'
 import { goalAnnouncement } from '@/lib/marketing'
@@ -121,7 +121,7 @@ function Header({ searchTerm = '', onSearchChange, cartCount = 0, onOpenDashboar
                 <Icon name="settings" />
               </button>
             ) : (
-              <button className="hdr__icon hdr__login" onClick={() => navigate('/admin')} aria-label="Acceso administrador" title="Acceso administrador">
+              <button className="hdr__icon hdr__login" onClick={() => navigate(loginPath())} aria-label="Acceso administrador" title="Acceso administrador">
                 <Icon name="user" size={20} />
               </button>
             )}

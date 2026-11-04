@@ -1,7 +1,7 @@
 // Estructura "Editorial" (estilo revista / portafolio): nombre gigante, círculo con foto,
 // sello giratorio, cinta animada y productos numerados.
 import { useRef } from 'react'
-import { navigate } from '@/app/router'
+import { navigate, loginPath } from '@/app/router'
 import { useAdmin } from '@/features/editor/EditorProvider'
 import EditText from '@/features/editor/EditText'
 import Icon from '@/shared/ui/Icon'
@@ -41,7 +41,7 @@ export default function EditorialView({ onOpenDashboard }) {
           </label>
           {canEdit
             ? <button className="ed-ic" onClick={onOpenDashboard} aria-label="Panel de administración"><Icon name="settings" size={19} /></button>
-            : <button className="ed-ic" onClick={() => navigate('/admin')} aria-label="Acceso administrador"><Icon name="user" size={19} /></button>}
+            : <button className="ed-ic" onClick={() => navigate(loginPath())} aria-label="Acceso administrador"><Icon name="user" size={19} /></button>}
           <button className="ed-ic ed-cart" onClick={s.openCart} aria-label={`Pedido, ${s.count} productos`}><Icon name="cart" size={19} />{s.count > 0 && <b>{s.count}</b>}</button>
         </div>
       </header>

@@ -13,8 +13,9 @@ export default class ErrorBoundary extends Component {
     return (
       <StatusScreen icon="🛠️" eyebrow="Algo salió mal" title={stale ? 'Hay una versión nueva' : 'No pudimos mostrar esta página'}
         text={stale ? 'Recarga para ver los últimos cambios.' : 'Intenta recargar. Si el problema sigue, escríbenos.'}>
-        <button className="btn btn--primary" onClick={() => window.location.reload()}>Recargar</button>
-        <a className="btn btn--ghost" href="/">Ir al inicio</a>
+        {/* Recargar conserva la dirección actual (no lleva al inicio) */}
+        <button className="btn btn--primary" onClick={() => window.location.reload()}>Recargar esta página</button>
+        {window.location.pathname !== '/' && <a className="btn btn--ghost" href="/">Ir al inicio</a>}
       </StatusScreen>
     )
   }

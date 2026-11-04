@@ -53,6 +53,19 @@ export function Link({ to, onClick, ...rest }) {
   )
 }
 
+// Página de inicio de sesión que recuerda dónde estaba la persona (?next=/mi-catalogo)
+export function loginPath() {
+  const here = window.location.pathname + window.location.search
+  return here === '/' || /^\/(admin|login)(\/|\?|$)/.test(here) ? '/admin' : `/admin?next=${encodeURIComponent(here)}`
+}
+// Solo rutas internas (evita redirigir a otros sitios con ?next=https://…)
+export function safeNext(raw) {
+  if (!raw || typeof raw !== 'string') return ''
+  if (!raw.startsWith('/') || raw.startsWith('//') || raw.startsWith('/\\')) return ''
+  if (/^\/(admin|login)(\/|\?|$)/.test(raw)) return ''
+  return raw
+}
+
 // URL pública de un catálogo
 export const catalogPath = (slug) => (slug === PLATFORM.homeTenant ? '/' : `/${slug}`)
 export const catalogUrl = (slug) => `${window.location.origin}/${slug}`

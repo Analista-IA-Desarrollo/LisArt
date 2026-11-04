@@ -1,7 +1,7 @@
 // Estructura "Streetwear" (inspirada en tiendas tipo Terrain):
 // retícula con líneas, titulares en mayúscula, franja de cifras y colección en carrusel.
 import { useEffect, useRef, useState } from 'react'
-import { navigate } from '@/app/router'
+import { navigate, loginPath } from '@/app/router'
 import { useAdmin } from '@/features/editor/EditorProvider'
 import EditText from '@/features/editor/EditText'
 import Icon from '@/shared/ui/Icon'
@@ -39,7 +39,7 @@ export default function TerrainView({ onOpenDashboard }) {
         </button>
         {canEdit
           ? <button className="tr-cell tr-icon" onClick={onOpenDashboard} aria-label="Panel de administración"><Icon name="settings" size={18} /></button>
-          : <button className="tr-cell tr-icon" onClick={() => navigate('/admin')} aria-label="Acceso administrador"><Icon name="user" size={18} /></button>}
+          : <button className="tr-cell tr-icon" onClick={() => navigate(loginPath())} aria-label="Acceso administrador"><Icon name="user" size={18} /></button>}
         <button className="tr-cell tr-cart" onClick={s.openCart} aria-label={`Pedido, ${s.count} productos`}>
           Pedido <b>[ {String(s.count).padStart(2, '0')} ]</b>
         </button>

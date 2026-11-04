@@ -4,7 +4,7 @@
 // botones de cabecera, agregar rápido, pie de página y preguntas.
 // ─────────────────────────────────────────────────────────────
 import { useEffect, useRef, useState } from 'react'
-import { navigate } from '@/app/router'
+import { navigate, loginPath } from '@/app/router'
 import { useAdmin } from '@/features/editor/EditorProvider'
 import { useCart } from '@/features/cart/CartProvider'
 import { useAddToCart } from '@/features/cart/useAddToCart'
@@ -105,7 +105,7 @@ export function AdminButton({ onOpenDashboard, className = '' }) {
   const { canEdit } = useAdmin()
   return canEdit
     ? <button className={`kt-ic ${className}`} onClick={onOpenDashboard} aria-label="Panel de administración"><Icon name="settings" size={20} /></button>
-    : <button className={`kt-ic ${className}`} onClick={() => navigate('/admin')} aria-label="Acceso administrador"><Icon name="user" size={20} /></button>
+    : <button className={`kt-ic ${className}`} onClick={() => navigate(loginPath())} aria-label="Acceso administrador"><Icon name="user" size={20} /></button>
 }
 
 /* ── Agregar rápido (si tiene tallas o colores abre la ficha) ── */

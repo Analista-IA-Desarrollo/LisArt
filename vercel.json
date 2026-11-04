@@ -17,7 +17,7 @@
       "destination": "/api/seo/page?slug=:slug"
     },
     {
-      "source": "/((?!api/).*)",
+      "source": "/((?!api/|assets/).*)",
       "destination": "/index.html"
     }
   ],

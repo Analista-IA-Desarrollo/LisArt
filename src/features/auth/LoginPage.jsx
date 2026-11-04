@@ -2,13 +2,14 @@
 import { useEffect, useState } from 'react'
 import PlatformShell from '@/features/platform/PlatformShell'
 import { useAuth } from './AuthProvider'
-import { navigate, catalogPath, Link } from '@/app/router'
+import { navigate, catalogPath, Link, safeNext } from '@/app/router'
 import { PLATFORM } from '@/config/platform'
 import {
   loginWithEmail, loginWithGoogle, resetPassword, registerSuperAccount, friendlyError,
 } from '@/services/auth.service'
 import { createTicket } from '@/services/tickets.service'
 import Icon from '@/shared/ui/Icon'
+import StatusScreen from '@/shared/ui/StatusScreen'
 
 export default function LoginPage() {
   const { user, isSuper, loading, logout, tenantId } = useAuth()
@@ -24,16 +25,26 @@ export default function LoginPage() {
   const [info, setInfo] = useState('')
   const [justLogged, setJustLogged] = useState(false)
 
-  // Después de iniciar sesión, llevar a cada quien a su lugar
+  // Página a la que volver después de entrar (?next=/mi-catalogo), solo rutas internas
+  const next = typeof window !== 'undefined' ? safeNext(new URLSearchParams(window.location.search).get('next')) : ''
+  // ¿Puede esta cuenta abrir esa página? (el catálogo propio, o cualquiera si es super)
+  const nextAllowed = !!next && (isSuper || (!!tenantId && (next === catalogPath(tenantId) || next.startsWith(`/${tenantId}?`) || next === `/${tenantId}`)))
+
+  // Después de iniciar sesión (o si ya había sesión y llegó con ?next), llevar a cada quien a su lugar
   useEffect(() => {
-    if (!justLogged || loading || !user) return
-    if (isSuper) navigate('/super', { replace: true })
+    if (loading || !user) return
+    if (!justLogged && !next) return
+    if (nextAllowed) navigate(next, { replace: true })
+    else if (isSuper) navigate('/super', { replace: true })
     else if (tenantId) navigate(catalogPath(tenantId), { replace: true })
-  }, [justLogged, loading, user, isSuper, tenantId])
+  }, [justLogged, loading, user, isSuper, tenantId, next, nextAllowed])
 
   const run = async (fn) => {
     setBusy(true); setError(''); setInfo('')
-    try { await fn() } catch (e) { setError(friendlyError(e)) } finally { setBusy(false) }
+    try { await fn() } catch (e) {
+      console.error('[login]', e?.code || '', e)
+      setError(friendlyError(e))
+    } finally { setBusy(false) }
   }
 
   const isSuperEmail = PLATFORM.superAdmins.includes(email.trim().toLowerCase())
@@ -63,8 +74,12 @@ export default function LoginPage() {
     return run(async () => { await loginWithEmail(email, password); setJustLogged(true) })
   }
 
-  // Ya hay una sesión abierta
-  if (user && !justLogged && !loading) {
+  // Sesión recién iniciada: mientras se carga el perfil y se redirige, no mostrar otra vez el formulario
+  const redirecting = !!user && !loading && (justLogged || !!next) && (nextAllowed || isSuper || !!tenantId)
+  if (user && (loading || redirecting)) return <StatusScreen loading />
+
+  // Ya hay una sesión abierta (o se acaba de iniciar y la cuenta no tiene catálogo asignado)
+  if (user && !loading) {
     return (
       <PlatformShell title="Mi cuenta">
         <main className="pf-center">

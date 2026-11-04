@@ -1,7 +1,7 @@
 // Punto de entrada de la aplicación: sesión + rutas
 import { lazy, Suspense, useEffect } from 'react'
-import { AuthProvider, useAuth } from '@/features/auth/AuthProvider'
-import { useRoute } from './router'
+import { AuthProvider, useAuth, ownerHint } from '@/features/auth/AuthProvider'
+import { useRoute, navigate, catalogPath } from './router'
 import StatusScreen from '@/shared/ui/StatusScreen'
 import ErrorBoundary from '@/shared/ui/ErrorBoundary'
 
@@ -26,7 +26,14 @@ function useBaseFonts(on) {
 function Routes() {
   const route = useRoute()
   useBaseFonts(route.name === 'login' || route.name === 'super')
-  const { isSuper, loading } = useAuth()
+  const { isSuper, loading, user, tenantId } = useAuth()
+  // Raíz "/": si quien entra es dueño de un catálogo, se le muestra el suyo
+  const ownerHome = route.name === 'home' && !isSuper && tenantId && catalogPath(tenantId) !== '/' ? catalogPath(tenantId) : ''
+  useEffect(() => { if (!loading && ownerHome) navigate(ownerHome, { replace: true }) }, [loading, ownerHome])
+  if (route.name === 'home') {
+    // Mientras se confirma la sesión de un dueño (pista en este dispositivo), no mostrar el portafolio
+    if (ownerHome || (loading && ownerHint() && user !== null)) return <StatusScreen loading />
+  }
   switch (route.name) {
     case 'login': return <LoginPage />
     // El panel de super administrador ni siquiera se descarga si la cuenta no lo es

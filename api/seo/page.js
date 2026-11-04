@@ -7,7 +7,7 @@ import { isPremium } from '../../src/lib/billingCore.js'
 import { loadCatalog, originOf, RESERVED } from '../_lib/seo.js'
 
 const shells = new Map() // origen → { html, at }
-async function indexHtml(origin) {
+async function fetchShell(origin) {
   const shell = shells.get(origin)
   if (shell?.html && Date.now() - shell.at < 5 * 60e3) return shell.html
   const r = await fetch(`${origin}/index.html`, { headers: { 'x-seo-shell': '1' } })
@@ -18,6 +18,24 @@ async function indexHtml(origin) {
   shells.set(origin, { html, at: Date.now() })
   return html
 }
+// Primero el index.html de ESTE despliegue (sus archivos /assets sí existen aquí);
+// si no se puede, el del dominio principal.
+async function indexHtml(req, origin) {
+  const host = String(req.headers['x-forwarded-host'] || req.headers.host || '').toLowerCase()
+  const own = /^[a-z0-9.-]+(:\d+)?$/.test(host) ? `${/^(localhost|127\.0\.0\.1)/.test(host) ? 'http' : 'https'}://${host}` : ''
+  const vercel = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : ''
+  let lastError
+  for (const o of [...new Set([vercel, own, origin].filter(Boolean))]) {
+    try { return await fetchShell(o) } catch (e) { lastError = e }
+  }
+  throw lastError
+}
+
+// Si no se pudo armar la página, se reintenta en la MISMA dirección (nunca se manda al inicio)
+// (meta refresh: la política de seguridad no permite scripts en línea)
+const RETRY_HTML = '<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
+  + '<meta http-equiv="refresh" content="2"><title>Cargando…</title>'
+  + '<p style="font-family:system-ui;text-align:center;margin-top:30vh">Cargando…</p>'
 
 // Quita las etiquetas genéricas que se reemplazan
 const strip = (html) => html
@@ -27,9 +45,11 @@ const strip = (html) => html
 export default async function handler(req, res) {
   const origin = originOf(req)
   let html
-  try { html = await indexHtml(origin) } catch (e) {
+  try { html = await indexHtml(req, origin) } catch (e) {
     console.error('[seo] sin index.html', e)
-    return res.status(502).send('No disponible por un momento. Recarga la página.')
+    res.setHeader('Cache-Control', 'no-store')
+    res.setHeader('Content-Type', 'text/html; charset=utf-8')
+    return res.status(503).send(RETRY_HTML)
   }
   const slug = String(req.query.slug || '').toLowerCase()
   const productId = req.query.p ? String(req.query.p) : ''

@@ -1,7 +1,7 @@
 // Estructura "Tienda minimal" (inspirada en tiendas tipo Velora):
 // barra de aviso, menú limpio, producto estrella con opciones y cuadrículas de productos.
 import { useEffect, useState } from 'react'
-import { navigate } from '@/app/router'
+import { navigate, loginPath } from '@/app/router'
 import { useAdmin } from '@/features/editor/EditorProvider'
 import EditText from '@/features/editor/EditText'
 import Icon from '@/shared/ui/Icon'
@@ -51,7 +51,7 @@ export default function VeloraView({ onOpenDashboard }) {
             <button className="vl-icon" onClick={() => setSearching(v => !v)} aria-label="Buscar" aria-expanded={searching}><Icon name={searching ? 'close' : 'search'} size={21} /></button>
             {canEdit
               ? <button className="vl-icon" onClick={onOpenDashboard} aria-label="Panel de administración"><Icon name="settings" size={21} /></button>
-              : <button className="vl-icon" onClick={() => navigate('/admin')} aria-label="Acceso administrador"><Icon name="user" size={21} /></button>}
+              : <button className="vl-icon" onClick={() => navigate(loginPath())} aria-label="Acceso administrador"><Icon name="user" size={21} /></button>}
             <button className="vl-icon vl-cart" onClick={s.openCart} aria-label={`Pedido, ${s.count} productos`}>
               <Icon name="cart" size={21} />{s.count > 0 && <b>{s.count}</b>}
             </button>
