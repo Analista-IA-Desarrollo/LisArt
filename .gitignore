@@ -32,3 +32,6 @@ dist
 
 # Archivos temporales
 _tmp_claude/
+
+.vercel
+.env*

@@ -9,8 +9,11 @@
 // ─────────────────────────────────────────────────────────────
 import { formatPrice } from './format.js'
 
-const LINE = '━━━━━━━━━━━━━━'
+// Solo símbolos «clásicos» (✨ ♡ ✦ ➤ ★ ✓ ⏰ ✉): se ven bien en TODOS los celulares y en
+// WhatsApp Web. Los emojis nuevos (👋 🛒 💰…) a veces llegan como «�».
+const LINE = '┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈'
 const MAX_LINKS = 8 // mensajes cortos: enlaces solo para los primeros productos
+const DEFAULT_NAMES = ['nuevo producto', '']
 
 // Enlace público a la ficha de un producto (la página del servidor pone su foto)
 export const productUrl = (slug, id, origin = typeof window !== 'undefined' ? window.location.origin : '') =>
@@ -28,47 +31,60 @@ export function orderCode() {
   return Array.from(r, x => c[x % c.length]).join('')
 }
 
+// Nombre presentable (si el negocio no le puso nombre al producto)
+const nameOf = (i, n) => (DEFAULT_NAMES.includes(String(i?.name || '').trim().toLowerCase()) ? `Producto ${n}` : String(i.name).trim())
+const priceOf = (v) => (Number(v) > 0 ? formatPrice(v) : 'precio a convenir')
+
 /**
- * Pedido completo, ordenado y fácil de leer en el chat del negocio.
+ * Pedido completo, bonito y fácil de leer en el chat del negocio.
  * { brand, slug, items, total, discount, finalTotal, rewards, info, freeShipping, code }
  */
 export function orderMessage({ brand, slug, items = [], total = 0, discount = 0, finalTotal = total, rewards = [], info = {}, freeShipping = false, code = orderCode() }) {
   const units = items.reduce((s, i) => s + (Number(i.qty) || 0), 0)
+  const toQuote = items.some(i => !(Number(i.price) > 0)) // algún producto sin precio
   let links = 0
-  const lines = items.flatMap((i, n) => {
+  const lines = items.flatMap((i, idx) => {
+    const n = idx + 1
     const opts = optsOf(i)
-    const out = [
-      `*${n + 1}. ${i.name}*${opts ? ` — ${opts}` : ''}`,
-      `     ${i.qty} × ${formatPrice(i.price)} = *${formatPrice(i.price * i.qty)}*`,
-    ]
+    const qty = Number(i.qty) || 1
+    const out = [`*${n}. ${nameOf(i, n)}*`]
+    if (opts) out.push(`     ${opts}`)
+    out.push(Number(i.price) > 0
+      ? (qty > 1 ? `     ${qty} × ${formatPrice(i.price)} ➤ *${formatPrice(i.price * qty)}*` : `     ${qty} und ➤ *${formatPrice(i.price)}*`)
+      : `     ${qty} und ➤ _${priceOf(0)}_`)
     if (i.detail) out.push(`     Incluye: ${i.detail}`)
-    if (slug && !isCombo(i) && links < MAX_LINKS) { out.push(`     📷 ${productUrl(slug, i.id)}`); links++ }
-    return out
+    if (slug && !isCombo(i) && links < MAX_LINKS) { out.push(`     Ver foto: ${productUrl(slug, i.id)}`); links++ }
+    return [...out, '']
   })
+  if (lines.at(-1) === '') lines.pop()
+
+  const totalLine = finalTotal > 0
+    ? `★ *TOTAL: ${formatPrice(finalTotal)}*${toQuote ? ' _+ lo que esté por cotizar_' : ''}`
+    : '★ *TOTAL:* _por cotizar_'
 
   const extra = [
-    info.name?.trim() && `👤 *Nombre:* ${info.name.trim()}`,
-    info.date?.trim() && `📅 *Entrega:* ${info.date.trim()}`,
-    info.note?.trim() && `📝 *Detalles:* ${info.note.trim()}`,
+    info.name?.trim() && `♡ *A nombre de:* ${info.name.trim()}`,
+    info.date?.trim() && `⏰ *Para cuándo:* ${info.date.trim()}`,
+    info.note?.trim() && `✉ *Detalles:* ${info.note.trim()}`,
   ].filter(Boolean)
 
   return [
-    `¡Hola ${brand.name}! 👋`,
-    'Quiero hacer este pedido:',
+    `✨ ¡Hola, *${brand.name}*! ✨`,
+    'Vi su catálogo y quiero hacer este pedido ♡',
     '',
-    `🛒 *PEDIDO #${code}* · ${units} ${units === 1 ? 'producto' : 'productos'}`,
+    `✦ *PEDIDO #${code}* · ${units} ${units === 1 ? 'producto' : 'productos'}`,
     LINE,
     ...lines,
     LINE,
-    ...(discount > 0
-      ? [`Subtotal: ${formatPrice(total)}`, `Descuento: −${formatPrice(discount)}`]
-      : []),
-    `💰 *TOTAL: ${formatPrice(finalTotal)}*`,
-    ...(rewards.length ? [`🎁 *Premio:* ${rewards.join(' + ')}`] : []),
-    ...(freeShipping ? ['🚚 Envío gratis'] : []),
-    ...(extra.length ? ['', ...extra] : []),
+    ...(discount > 0 ? [`Subtotal: ${formatPrice(total)}`, `Descuento: −${formatPrice(discount)}`] : []),
+    totalLine,
+    ...(rewards.length ? [`✓ *Premio:* ${rewards.join(' + ')}`] : []),
+    ...(freeShipping ? ['✓ *Envío gratis*'] : []),
+    ...(extra.length ? ['', '*Mis datos*', ...extra] : []),
     '',
-    freeShipping ? '¿Me confirmas disponibilidad, por favor? ¡Gracias! 🙌' : '¿Me confirmas disponibilidad y el costo del envío? ¡Gracias! 🙌',
+    freeShipping
+      ? '¿Me confirmas si está disponible? ¡Mil gracias! ☺'
+      : '¿Me confirmas si está disponible y cuánto vale el envío? ¡Mil gracias! ☺',
   ].join('\n')
 }
 
@@ -77,12 +93,14 @@ export function productQuestionMessage(product, businessName = '', { slug, size,
   const opts = [size && `Talla ${size}`, color && `Color ${color}`].filter(Boolean).join(' · ')
   const price = Number(product?.price) > 0 ? formatPrice(product.price) : ''
   return [
-    `¡Hola ${businessName}! 👋 Me interesa este producto:`,
+    `✨ ¡Hola, *${businessName}*! ✨`,
+    'Me encantó este producto ♡',
     '',
-    `*${product.name}*${opts ? ` — ${opts}` : ''}`,
-    ...(price ? [`💰 ${price}`] : []),
-    ...(slug && product?.id ? [`📷 ${productUrl(slug, product.id)}`] : []),
+    `✦ *${nameOf(product, 1)}*`,
+    ...(opts ? [`     ${opts}`] : []),
+    ...(price ? [`     ${price}`] : []),
+    ...(slug && product?.id ? [`     Ver foto: ${productUrl(slug, product.id)}`] : []),
     '',
-    '¿Está disponible? ¡Gracias!',
+    '¿Está disponible? ¡Gracias! ☺',
   ].join('\n')
 }

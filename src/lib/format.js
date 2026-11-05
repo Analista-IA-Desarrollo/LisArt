@@ -12,9 +12,11 @@ export const normalizePhone = (raw = '') => {
   return d
 }
 
+// Se usa api.whatsapp.com y no wa.me: la redirección de wa.me daña los emojis
+// (llegan como «�» en WhatsApp Web / escritorio).
 export const waLink = (phone, text = '') => {
   const n = normalizePhone(phone)
-  return `https://wa.me/${n}${text ? `?text=${encodeURIComponent(text)}` : ''}`
+  return `https://api.whatsapp.com/send?phone=${n}${text ? `&text=${encodeURIComponent(text)}` : ''}`
 }
 
 export const openWhatsApp = (phone, text) => window.open(waLink(phone, text), '_blank', 'noopener')

@@ -5,6 +5,7 @@
 import { useState, useMemo, useEffect, useRef, lazy, Suspense } from 'react'
 import { useBillingSettings } from '@/features/billing/useBilling'
 import { billingState } from '@/lib/billingCore'
+import { waLink } from '@/lib/format'
 import { TenantProvider, useTenant } from '@/features/tenant/TenantProvider'
 import { SettingsProvider, useSettingsCtx } from '@/features/catalog/data/SettingsProvider'
 import { ProductsProvider, useProductsCtx } from '@/features/catalog/data/ProductsProvider'
@@ -274,7 +275,7 @@ function TenantGate({ children }) {
   if ((tenant.status !== 'active' || unpaid) && !canEdit) {
     return (
       <StatusScreen icon="🌙" eyebrow={tenant.name} title="Volvemos pronto" text="Este catálogo no está disponible en este momento. Mientras tanto, puedes escribirnos directamente.">
-        {tenant.whatsapp && <a className="btn btn--wa" href={`https://wa.me/${tenant.whatsapp}`} target="_blank" rel="noopener noreferrer">Escribir por WhatsApp</a>}
+        {tenant.whatsapp && <a className="btn btn--wa" href={waLink(tenant.whatsapp)} target="_blank" rel="noopener noreferrer">Escribir por WhatsApp</a>}
       </StatusScreen>
     )
   }
